@@ -1,0 +1,45 @@
+@import "tailwindcss";
+
+:root {
+  --background: #f7faf9;
+  --foreground: #17211f;
+  --panel: #ffffff;
+  --panel-muted: #eef5f2;
+  --line: #dce7e2;
+  --ink-soft: #58706a;
+  --teal: #0f766e;
+  --coral: #d95d39;
+  --amber: #d89b1d;
+  --blue: #2b6cb0;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: "Geist", "Geist Fallback", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "Geist Mono", "Geist Mono Fallback", ui-monospace, monospace;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.focus-ring {
+  outline: none;
+}
+
+.focus-ring:focus-visible {
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.22);
+}
