@@ -82,6 +82,22 @@ class SupabaseRepository:
         )
         return result.data or []
 
+    def ensure_student_profile(
+        self, student_id: str, email: str | None, name: str
+    ) -> Dict[str, Any]:
+        payload = {
+            "id": student_id,
+            "email": email,
+            "name": name,
+        }
+        result = (
+            self.client()
+            .table("students")
+            .upsert(payload, on_conflict="id")
+            .execute()
+        )
+        return result.data[0] if result.data else payload
+
     def student_history(
         self, student_id: str, counsellor_id: str | None = None
     ) -> Dict[str, Any]:
@@ -89,6 +105,15 @@ class SupabaseRepository:
         if counsellor_id:
             student_query = student_query.eq("counsellor_id", counsellor_id)
         student_result = student_query.maybe_single().execute()
+        student_data = student_result.data if student_result else None
+        if counsellor_id and not student_data:
+            return {
+                "student": None,
+                "surveys": [],
+                "predictions": [],
+                "audio_files": [],
+            }
+
         surveys = (
             self.client()
             .table("surveys")
@@ -114,7 +139,7 @@ class SupabaseRepository:
             .execute()
         )
         return {
-            "student": student_result.data,
+            "student": student_data,
             "surveys": surveys.data or [],
             "predictions": predictions.data or [],
             "audio_files": audio_files.data or [],

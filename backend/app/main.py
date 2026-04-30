@@ -2,7 +2,7 @@ from contextlib import asynccontextmanager
 from typing import Annotated
 
 import numpy as np
-from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile
+from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.auth import CurrentUser, get_current_user
@@ -11,6 +11,7 @@ from app.schemas import (
     FullPredictionResponse,
     HealthResponse,
     PredictionResponse,
+    StudentProfileRequest,
     StudentHistory,
     SurveyCreateRequest,
     SurveyPredictionRequest,
@@ -100,7 +101,13 @@ async def predict_audio(
     student_id: str | None = Form(default=None),
     save: bool = Form(default=True),
 ) -> PredictionResponse:
-    probabilities, features = await models.audio_probabilities_from_upload(audio)
+    try:
+        probabilities, features = await models.audio_probabilities_from_upload(audio)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Audio could not be decoded. Please record again or upload a WAV file.",
+        ) from exc
     result = models.predict_audio_from_probabilities(probabilities)
     saved_id = None
     audio_id = None
@@ -143,7 +150,13 @@ async def predict_full(
     audio_id = None
     features = None
     if audio is not None:
-        audio_probs, features = await models.audio_probabilities_from_upload(audio)
+        try:
+            audio_probs, features = await models.audio_probabilities_from_upload(audio)
+        except Exception as exc:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Audio could not be decoded. Please record again or upload a WAV file.",
+            ) from exc
         audio_source = "upload"
     else:
         audio_probs = models.synthetic_audio_probabilities()
@@ -191,6 +204,18 @@ async def students(user: Annotated[CurrentUser, Depends(get_current_user)]):
     return repo.list_students_for_counsellor(user.id)
 
 
+@app.post("/students/me")
+async def ensure_student_profile(
+    payload: StudentProfileRequest,
+    user: Annotated[CurrentUser, Depends(get_current_user)],
+):
+    return repo.ensure_student_profile(
+        student_id=user.id,
+        email=user.email,
+        name=payload.name.strip() or user.email or "Student",
+    )
+
+
 @app.get("/students/{student_id}/history", response_model=StudentHistory)
 async def student_history(
     student_id: str,
@@ -199,7 +224,7 @@ async def student_history(
     claims = user.claims or {}
     metadata = claims.get("user_metadata") or claims.get("app_metadata") or {}
     claimed_student_id = metadata.get("student_id") if isinstance(metadata, dict) else None
-    counsellor_id = None if claimed_student_id == student_id else user.id
+    counsellor_id = None if student_id in {user.id, claimed_student_id} else user.id
     return StudentHistory(**repo.student_history(student_id, counsellor_id))
 
 
@@ -217,7 +242,13 @@ async def upload_audio(
     audio: UploadFile = File(...),
     student_id: str = Form(...),
 ):
-    probabilities, features = await models.audio_probabilities_from_upload(audio)
+    try:
+        probabilities, features = await models.audio_probabilities_from_upload(audio)
+    except Exception as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Audio could not be decoded. Please record again or upload a WAV file.",
+        ) from exc
     audio_record = repo.create_audio_file(
         student_id=student_id,
         file_path=audio.filename or "recording",

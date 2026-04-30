@@ -2,7 +2,7 @@ create table if not exists public.students (
   id uuid primary key default gen_random_uuid(),
   name text not null,
   email text unique,
-  counsellor_id uuid not null references auth.users(id) on delete cascade,
+  counsellor_id uuid references auth.users(id) on delete set null,
   enrollment_year integer,
   created_at timestamptz not null default now()
 );
@@ -59,7 +59,7 @@ drop policy if exists "Counsellors can read assigned students" on public.student
 create policy "Counsellors can read assigned students"
 on public.students for select
 to authenticated
-using (counsellor_id = auth.uid());
+using (counsellor_id = auth.uid() or id = auth.uid());
 
 drop policy if exists "Counsellors can read assigned surveys" on public.surveys;
 create policy "Counsellors can read assigned surveys"

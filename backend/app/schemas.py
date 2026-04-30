@@ -44,3 +44,7 @@ class StudentHistory(BaseModel):
     surveys: List[Dict[str, Any]]
     predictions: List[Dict[str, Any]]
     audio_files: List[Dict[str, Any]]
+
+
+class StudentProfileRequest(BaseModel):
+    name: str
