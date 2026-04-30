@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Mic, Square, Upload } from "lucide-react";
 import { api, getStudentId, type PredictionResponse } from "@/lib/api";
 import { ProbabilityChart } from "@/components/probability-chart";
@@ -63,9 +63,23 @@ export function AudioRecorder() {
   const [clipUrl, setClipUrl] = useState("");
   const [result, setResult] = useState<PredictionResponse | null>(null);
   const [error, setError] = useState("");
+  const [audioAvailable, setAudioAvailable] = useState(true);
   const [loading, setLoading] = useState(false);
 
+  useEffect(() => {
+    async function checkAudioModel() {
+      try {
+        const response = await api.get<{ available_models?: Record<string, boolean> }>("/health");
+        setAudioAvailable(Boolean(response.data.available_models?.audio_mlp));
+      } catch {
+        setAudioAvailable(false);
+      }
+    }
+    void checkAudioModel();
+  }, []);
+
   async function startRecording() {
+    if (!audioAvailable) return;
     setError("");
     setResult(null);
     setClip(null);
@@ -122,6 +136,10 @@ export function AudioRecorder() {
 
   async function uploadClip() {
     if (!clip) return;
+    if (!audioAvailable) {
+      setError("Audio prediction is unavailable because the current model folder does not include neuroguard_audio.keras.");
+      return;
+    }
     setLoading(true);
     setError("");
     try {
@@ -150,8 +168,17 @@ export function AudioRecorder() {
     <section className="mx-auto max-w-5xl px-4 py-8">
       <div className="mb-6">
         <h1 className="text-2xl font-semibold">Audio Recorder</h1>
-        <p className="text-sm text-[#58706a]">Record a 10-second voice clip and send it to the audio MLP.</p>
+        <p className="text-sm text-[#58706a]">
+          {audioAvailable
+            ? "Record a 10-second voice clip and send it to the audio MLP."
+            : "Audio prediction is unavailable for the current PDS MODEL 2 folder."}
+        </p>
       </div>
+      {!audioAvailable && (
+        <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+          Add a compatible <span className="font-mono">neuroguard_audio.keras</span> file to enable this page. Survey and temporal LSTM predictions still work.
+        </div>
+      )}
       {error && <div className="mb-4 rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">{error}</div>}
       <div className="grid gap-4 lg:grid-cols-[1fr_340px]">
         <div className="rounded-lg border border-[#dce7e2] bg-white p-5">
@@ -159,6 +186,7 @@ export function AudioRecorder() {
             {!recording ? (
               <button
                 onClick={startRecording}
+                disabled={!audioAvailable}
                 className="focus-ring inline-flex items-center gap-2 rounded-md bg-[#0f766e] px-4 py-2 font-semibold text-white"
               >
                 <Mic size={18} />
@@ -175,7 +203,7 @@ export function AudioRecorder() {
             )}
             <button
               onClick={uploadClip}
-              disabled={!clip || loading}
+              disabled={!clip || loading || !audioAvailable}
               className="focus-ring inline-flex items-center gap-2 rounded-md border border-[#dce7e2] bg-white px-4 py-2 font-semibold disabled:opacity-50"
             >
               <Upload size={18} />

@@ -11,9 +11,10 @@ BACKEND_ROOT = Path(__file__).resolve().parents[2]
 
 
 def default_model_dir() -> str:
-    local_colab_dir = PROJECT_ROOT / "PDS MODEL1"
-    if local_colab_dir.exists():
-        return str(local_colab_dir)
+    for folder_name in ("PDS MODEL 2", "PDS MODEL1"):
+        local_colab_dir = PROJECT_ROOT / folder_name
+        if local_colab_dir.exists():
+            return str(local_colab_dir)
     return str(BACKEND_ROOT / "models")
 
 

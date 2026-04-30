@@ -3,9 +3,9 @@
 [![Frontend](https://img.shields.io/badge/Frontend-Next.js-111827?style=for-the-badge&logo=nextdotjs)](https://nextjs.org/)
 [![Backend](https://img.shields.io/badge/Backend-FastAPI-009688?style=for-the-badge&logo=fastapi)](https://fastapi.tiangolo.com/)
 [![Database](https://img.shields.io/badge/Database-Supabase-3ECF8E?style=for-the-badge&logo=supabase&logoColor=0f172a)](https://supabase.com/)
-[![ML](https://img.shields.io/badge/ML-RF%20%7C%20MLP%20%7C%20Fusion-2B6CB0?style=for-the-badge)](#machine-learning)
+[![ML](https://img.shields.io/badge/ML-RF%20%7C%20LSTM%20%7C%20Fusion-2B6CB0?style=for-the-badge)](#machine-learning)
 
-NeuroGuard is a trimodal early-warning system for student mental health risk. It combines psychometric survey signals, voice biomarkers, and late-fusion machine learning to classify stress into:
+NeuroGuard is a student mental health early-warning system. The current `PDS MODEL 2` package combines psychometric survey signals, a temporal LSTM demonstration, and late-fusion machine learning to classify stress into:
 
 | Class | Label | Meaning |
 | --- | --- | --- |
@@ -18,7 +18,7 @@ The project was built for the Python for Data Science final project at Sardar Pa
 ## Highlights
 
 - Separate Student Sign in, Student Sign up, and Counsellor Sign in flows.
-- Student portal with survey form, audio recorder, prediction probabilities, and risk dashboard.
+- Student portal with survey form, RF probability chart, temporal LSTM result, and risk dashboard.
 - Counsellor portal with assigned student list, risk flags, history view, and realtime high-risk alerts.
 - FastAPI backend that loads the trained Google Colab model artifacts directly from the project folder.
 - Supabase Auth, PostgreSQL, Row Level Security, and Realtime events.
@@ -36,7 +36,7 @@ Next.js Frontend  <------ Supabase Auth + Realtime
 FastAPI Backend
           |
           +--> Random Forest survey model
-          +--> Audio MLP model
+          +--> Temporal LSTM model
           +--> Gradient Boosting fusion model
           |
           v
@@ -60,7 +60,7 @@ Supabase PostgreSQL
 |   +-- src/app/               # Next.js App Router pages
 |   +-- src/components/        # dashboard, charts, forms
 |   +-- src/lib/               # API, Supabase client, survey schema
-+-- PDS MODEL1/                # Colab notebook, plots, trained models
++-- PDS MODEL 2/               # Colab plots and trained models
 +-- supabase/
     +-- schema.sql             # tables, indexes, RLS, realtime publication
 ```
@@ -70,12 +70,14 @@ Supabase PostgreSQL
 | Model | File | Purpose |
 | --- | --- | --- |
 | Random Forest | `neuroguard_rf.pkl` | Predicts stress from 20 survey answers plus engineered features |
-| Audio MLP | `neuroguard_audio.keras` | Predicts stress from 85 voice features |
+| Temporal LSTM | `neuroguard_lstm.keras` | Demonstrates 8-step longitudinal tabular prediction |
 | Fusion GB | `neuroguard_fusion.pkl` | Combines tabular and audio probability vectors |
 | Tabular scaler | `neuroguard_scaler.pkl` | Scales survey feature matrix |
-| Audio scaler | `neuroguard_audio_scaler.pkl` | Scales extracted audio features |
+| Audio scaler | `neuroguard_audio_scaler.pkl` | Present in `PDS MODEL 2`, but no compatible audio Keras model is included |
 
-The backend automatically looks for models in `PDS MODEL1/` during local development. For Docker or cloud deployment, copy the same model files into `backend/models/`.
+The backend automatically looks for models in `PDS MODEL 2/` during local development, with `PDS MODEL1/` kept as a fallback for older copies. For Docker or cloud deployment, copy the same model files into `backend/models/`.
+
+Note: `PDS MODEL 2` does not include `neuroguard_audio.keras`. The app therefore disables audio prediction until a compatible audio model file is added. Survey, fusion-with-neutral-audio, and temporal LSTM paths still load.
 
 ## Features
 
@@ -84,7 +86,8 @@ The backend automatically looks for models in `PDS MODEL1/` during local develop
 - Create a new account with email/password.
 - Sign in after account creation.
 - Fill the 20-question survey.
-- Record and upload a 10-second voice clip.
+- Use the survey model and see both Random Forest and temporal LSTM predictions.
+- Audio recording is shown only as available when the model folder includes `neuroguard_audio.keras`.
 - View latest risk class, confidence, probabilities, and trend chart.
 
 ### Counsellor
@@ -100,6 +103,7 @@ The backend automatically looks for models in `PDS MODEL1/` during local develop
 - `POST /predict/tabular`
 - `POST /predict/audio`
 - `POST /predict/full`
+- `POST /predict/temporal`
 - `GET /students`
 - `POST /students/me`
 - `GET /students/{id}/history`
@@ -155,7 +159,14 @@ Expected response:
 ```json
 {
   "status": "ok",
-  "models_loaded": true
+  "models_loaded": true,
+  "available_models": {
+    "tabular_rf": true,
+    "fusion_gb": true,
+    "audio_mlp": false,
+    "audio_scaler": true,
+    "temporal_lstm": true
+  }
 }
 ```
 
@@ -229,6 +240,7 @@ Completed local checks:
 - FastAPI starts and loads the model artifacts.
 - `/health` returns `models_loaded: true`.
 - `/predict/tabular` returns a real Random Forest prediction.
+- `/predict/temporal` returns a real LSTM prediction when `neuroguard_lstm.keras` is present.
 - Login page renders in the in-app browser without a Next.js error overlay.
 
 ## References

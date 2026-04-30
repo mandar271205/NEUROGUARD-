@@ -20,6 +20,7 @@ class NeuroGuardModels:
         self.scaler = None
         self.audio_model = None
         self.audio_scaler = None
+        self.lstm_model = None
         self.loaded = False
 
     def load(self) -> None:
@@ -27,8 +28,6 @@ class NeuroGuardModels:
             "neuroguard_rf.pkl",
             "neuroguard_fusion.pkl",
             "neuroguard_scaler.pkl",
-            "neuroguard_audio.keras",
-            "neuroguard_audio_scaler.pkl",
         ]
         missing = [name for name in required if not (self.model_dir / name).exists()]
         if missing:
@@ -41,8 +40,12 @@ class NeuroGuardModels:
         self.rf = joblib.load(self.model_dir / "neuroguard_rf.pkl")
         self.fusion = joblib.load(self.model_dir / "neuroguard_fusion.pkl")
         self.scaler = joblib.load(self.model_dir / "neuroguard_scaler.pkl")
-        self.audio_model = load_model(self.model_dir / "neuroguard_audio.keras")
-        self.audio_scaler = joblib.load(self.model_dir / "neuroguard_audio_scaler.pkl")
+        audio_model_path = self.model_dir / "neuroguard_audio.keras"
+        audio_scaler_path = self.model_dir / "neuroguard_audio_scaler.pkl"
+        lstm_model_path = self.model_dir / "neuroguard_lstm.keras"
+        self.audio_model = load_model(audio_model_path) if audio_model_path.exists() else None
+        self.audio_scaler = joblib.load(audio_scaler_path) if audio_scaler_path.exists() else None
+        self.lstm_model = load_model(lstm_model_path) if lstm_model_path.exists() else None
         self.loaded = True
 
     def _ensure_loaded(self) -> None:
@@ -92,6 +95,23 @@ class NeuroGuardModels:
 
     def audio_probabilities_from_features(self, features: np.ndarray) -> np.ndarray:
         self._ensure_loaded()
+        if self.audio_model is None or self.audio_scaler is None:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=(
+                    "Audio prediction is unavailable because this model folder does "
+                    "not contain neuroguard_audio.keras."
+                ),
+            )
+        expected_features = getattr(self.audio_scaler, "n_features_in_", features.shape[0])
+        if features.shape[0] != expected_features:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=(
+                    f"Audio feature mismatch: extracted {features.shape[0]} features, "
+                    f"but the scaler expects {expected_features}."
+                ),
+            )
         scaled = self.audio_scaler.transform(features.reshape(1, -1))
         raw = self.audio_model.predict(scaled, verbose=0)[0]
         raw = np.asarray(raw, dtype=float)
@@ -111,6 +131,8 @@ class NeuroGuardModels:
             tmp_path.unlink(missing_ok=True)
 
     def synthetic_audio_probabilities(self) -> np.ndarray:
+        if self.audio_model is None or self.audio_scaler is None:
+            return np.array([1.0, 0.0, 0.0])
         neutral_features = np.zeros(85, dtype=np.float32)
         return self.audio_probabilities_from_features(neutral_features)
 
@@ -128,3 +150,37 @@ class NeuroGuardModels:
             probabilities = np.zeros(3, dtype=float)
             probabilities[label] = 1.0
         return self._response(probabilities)
+
+    def predict_temporal_from_responses(self, responses: Dict[str, float]) -> Dict[str, float | int]:
+        self._ensure_loaded()
+        if self.lstm_model is None:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Temporal LSTM prediction is unavailable in this model folder.",
+            )
+        missing = missing_fields(responses, BASE_SURVEY_FIELDS)
+        if missing:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Missing survey fields: {', '.join(missing)}",
+            )
+        engineered = add_composite_features(responses)
+        row = pd.DataFrame([[engineered[field] for field in self.feature_order]], columns=self.feature_order)
+        scaled = self.scaler.transform(row)
+        input_shape = getattr(self.lstm_model, "input_shape", (None, 8, len(self.feature_order)))
+        timesteps = int(input_shape[1] or 8)
+        sequence = np.repeat(scaled[:, np.newaxis, :], timesteps, axis=1)
+        raw = self.lstm_model.predict(sequence, verbose=0)[0]
+        probabilities = np.asarray(raw, dtype=float)
+        total = probabilities.sum()
+        probabilities = probabilities / total if total else np.array([1.0, 0.0, 0.0])
+        return self._response(probabilities)
+
+    def available_models(self) -> dict[str, bool]:
+        return {
+            "tabular_rf": self.rf is not None,
+            "fusion_gb": self.fusion is not None,
+            "audio_mlp": self.audio_model is not None,
+            "audio_scaler": self.audio_scaler is not None,
+            "temporal_lstm": self.lstm_model is not None,
+        }

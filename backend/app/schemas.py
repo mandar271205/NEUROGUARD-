@@ -37,6 +37,7 @@ class HealthResponse(BaseModel):
     status: str
     model_dir: str
     models_loaded: bool
+    available_models: Dict[str, bool] = Field(default_factory=dict)
 
 
 class StudentHistory(BaseModel):

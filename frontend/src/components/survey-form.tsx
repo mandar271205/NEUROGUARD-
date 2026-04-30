@@ -12,6 +12,7 @@ export function SurveyForm() {
     Object.fromEntries(surveyQuestions.map((question) => [question.key, ""]))
   );
   const [result, setResult] = useState<PredictionResponse | null>(null);
+  const [temporalResult, setTemporalResult] = useState<PredictionResponse | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -24,6 +25,7 @@ export function SurveyForm() {
     event.preventDefault();
     setError("");
     setResult(null);
+    setTemporalResult(null);
     if (!complete) {
       setError("Please answer all questions before submitting.");
       return;
@@ -40,6 +42,11 @@ export function SurveyForm() {
         save: Boolean(studentId)
       });
       setResult(response.data);
+      const temporalResponse = await api.post<PredictionResponse>("/predict/temporal", {
+        responses,
+        save: false
+      });
+      setTemporalResult(temporalResponse.data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Prediction failed.");
     } finally {
@@ -96,17 +103,31 @@ export function SurveyForm() {
           </button>
         </form>
         <aside className="rounded-lg border border-[#dce7e2] bg-white p-5">
-          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-[#58706a]">Result</h2>
+          <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-[#58706a]">Results</h2>
           {result ? (
             <div className="space-y-5">
-              <div className="flex items-center justify-between">
-                <RiskBadge level={result.prediction} />
-                <span className="font-mono text-sm text-[#58706a]">{Math.round(result.confidence * 100)}%</span>
+              <div>
+                <div className="mb-3 flex items-center justify-between">
+                  <span className="text-sm font-semibold">Random Forest</span>
+                  <span className="font-mono text-sm text-[#58706a]">{Math.round(result.confidence * 100)}%</span>
+                </div>
+                <div className="mb-4">
+                  <RiskBadge level={result.prediction} />
+                </div>
+                <ProbabilityChart values={[result.confidence_0, result.confidence_1, result.confidence_2]} />
               </div>
-              <ProbabilityChart values={[result.confidence_0, result.confidence_1, result.confidence_2]} />
+              {temporalResult && (
+                <div className="rounded-md border border-[#dce7e2] bg-[#f7faf9] p-3">
+                  <div className="mb-3 flex items-center justify-between">
+                    <span className="text-sm font-semibold">Temporal LSTM</span>
+                    <span className="font-mono text-sm text-[#58706a]">{Math.round(temporalResult.confidence * 100)}%</span>
+                  </div>
+                  <RiskBadge level={temporalResult.prediction} />
+                </div>
+              )}
             </div>
           ) : (
-            <p className="text-sm text-[#58706a]">The Random Forest result will appear here after submission.</p>
+            <p className="text-sm text-[#58706a]">Random Forest and temporal LSTM results will appear here after submission.</p>
           )}
         </aside>
       </div>

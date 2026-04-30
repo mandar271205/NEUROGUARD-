@@ -67,6 +67,7 @@ async def health() -> HealthResponse:
         status="ok",
         model_dir=str(settings.resolved_model_dir),
         models_loaded=models.loaded,
+        available_models=models.available_models(),
     )
 
 
@@ -128,6 +129,15 @@ async def predict_audio(
         )
         saved_id = prediction.get("id")
     return _prediction_response(result, "audio_mlp", saved_id)
+
+
+@app.post("/predict/temporal", response_model=PredictionResponse)
+async def predict_temporal(
+    payload: SurveyPredictionRequest,
+    _: Annotated[CurrentUser, Depends(get_current_user)],
+) -> PredictionResponse:
+    result = models.predict_temporal_from_responses(payload.responses)
+    return _prediction_response(result, "temporal_lstm")
 
 
 @app.post("/predict/full", response_model=FullPredictionResponse)
