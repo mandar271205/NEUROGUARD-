@@ -64,6 +64,7 @@ export function SurveyForm() {
                   <span className="font-mono text-xs text-[#58706a]">{answers[question.key] || "-"}</span>
                 </span>
                 <input
+                  suppressHydrationWarning
                   type="range"
                   min={question.min}
                   max={question.max}
@@ -73,6 +74,7 @@ export function SurveyForm() {
                   className="mt-3 w-full accent-[#0f766e]"
                 />
                 <input
+                  suppressHydrationWarning
                   type="number"
                   min={question.min}
                   max={question.max}
@@ -84,6 +86,7 @@ export function SurveyForm() {
             ))}
           </div>
           <button
+            suppressHydrationWarning
             type="submit"
             disabled={loading}
             className="focus-ring mt-5 inline-flex items-center gap-2 rounded-md bg-[#0f766e] px-4 py-2 font-semibold text-white disabled:opacity-60"

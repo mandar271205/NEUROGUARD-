@@ -51,6 +51,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             Alerts
           </Link>
           <button
+            suppressHydrationWarning
             type="button"
             onClick={logout}
             className="focus-ring flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm text-teal-50 hover:bg-white/10"
