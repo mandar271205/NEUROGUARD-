@@ -1,9 +1,14 @@
 from contextlib import asynccontextmanager
 from typing import Annotated
+import os
+import imageio_ffmpeg
+
+os.environ["PATH"] += os.pathsep + os.path.dirname(imageio_ffmpeg.get_ffmpeg_exe())
 
 import numpy as np
 from fastapi import Depends, FastAPI, File, Form, HTTPException, UploadFile, status
 from fastapi.middleware.cors import CORSMiddleware
+
 
 from app.core.auth import CurrentUser, get_current_user
 from app.core.config import get_settings
@@ -105,9 +110,10 @@ async def predict_audio(
     try:
         probabilities, features = await models.audio_probabilities_from_upload(audio)
     except Exception as exc:
+        print(f"DEBUG EXCEPTION: {type(exc)} - {exc}")
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            detail="Audio could not be decoded. Please record again or upload a WAV file.",
+            detail=f"Audio error: {str(exc)}",
         ) from exc
     result = models.predict_audio_from_probabilities(probabilities)
     saved_id = None

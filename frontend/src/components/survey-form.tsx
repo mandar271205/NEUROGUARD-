@@ -116,6 +116,14 @@ export function SurveyForm() {
                 </div>
                 <ProbabilityChart values={[result.confidence_0, result.confidence_1, result.confidence_2]} />
               </div>
+
+              <div className="rounded-md border border-[#dce7e2] bg-[#f7faf9] p-3">
+                <h3 className="mb-2 text-xs font-semibold uppercase tracking-wide text-[#58706a]">AI Justification</h3>
+                <p className="text-sm leading-relaxed text-[#58706a]">
+                  {generateJustification(result.prediction, answers)}
+                </p>
+              </div>
+
               {temporalResult && (
                 <div className="rounded-md border border-[#dce7e2] bg-[#f7faf9] p-3">
                   <div className="mb-3 flex items-center justify-between">
@@ -133,4 +141,35 @@ export function SurveyForm() {
       </div>
     </section>
   );
+}
+
+function generateJustification(predictionClass: number, survey: Record<string, string | number> | undefined): string {
+  if (!survey) return "No survey data available to generate a justification.";
+  
+  const highRiskFactors = [];
+  const positiveFactors = [];
+  
+  if (Number(survey.anxiety_level) >= 6) highRiskFactors.push("high anxiety");
+  if (Number(survey.depression) >= 6) highRiskFactors.push("elevated depression indicators");
+  if (Number(survey.sleep_quality) <= 4) highRiskFactors.push("poor sleep quality");
+  if (Number(survey.academic_performance) <= 4) highRiskFactors.push("academic struggles");
+  if (Number(survey.study_load) >= 7) highRiskFactors.push("heavy study load");
+  if (Number(survey.peer_pressure) >= 7) highRiskFactors.push("significant peer pressure");
+  if (Number(survey.bullying) >= 5) highRiskFactors.push("bullying");
+  
+  if (Number(survey.self_esteem) >= 7) positiveFactors.push("strong self-esteem");
+  if (Number(survey.social_support) >= 7) positiveFactors.push("good social support");
+  if (Number(survey.safety) >= 7) positiveFactors.push("a feeling of safety");
+  
+  if (predictionClass === 0) {
+    if (positiveFactors.length > 0) {
+      return `The model classified this as Normal primarily because of positive indicators like ${positiveFactors.join(", ")}, and a lack of severe stress factors.`;
+    }
+    return "The model classified this as Normal because stress indicators (like anxiety, depression, or study load) are within manageable ranges.";
+  } else {
+    if (highRiskFactors.length > 0) {
+      return `The model flagged a Risk primarily due to: ${highRiskFactors.join(", ")}. These factors significantly elevate stress levels and warrant attention.`;
+    }
+    return "The model flagged a Risk based on a combination of elevated stress signals across the survey.";
+  }
 }

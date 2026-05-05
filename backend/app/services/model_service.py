@@ -133,7 +133,7 @@ class NeuroGuardModels:
     def synthetic_audio_probabilities(self) -> np.ndarray:
         if self.audio_model is None or self.audio_scaler is None:
             return np.array([1.0, 0.0, 0.0])
-        neutral_features = np.zeros(85, dtype=np.float32)
+        neutral_features = np.zeros(124, dtype=np.float32)
         return self.audio_probabilities_from_features(neutral_features)
 
     def predict_audio_from_probabilities(self, probabilities: np.ndarray) -> Dict[str, float | int]:

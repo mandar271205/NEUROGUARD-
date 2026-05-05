@@ -109,17 +109,58 @@ export function StudentDashboard() {
             {trend.length ? <RiskTrendChart points={trend} /> : <p className="text-sm text-[#58706a]">No prediction history is available yet.</p>}
           </div>
         </div>
-        <div className="rounded-lg border border-[#dce7e2] bg-white p-5">
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[#58706a]">Probability split</h2>
-          {loading ? (
-            <p className="text-sm text-[#58706a]">Loading dashboard...</p>
-          ) : latest ? (
-            <ProbabilityChart values={probabilityValues} />
-          ) : (
-            <p className="text-sm text-[#58706a]">Submit a survey to generate probabilities.</p>
+        <div className="flex flex-col gap-4">
+          <div className="rounded-lg border border-[#dce7e2] bg-white p-5">
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[#58706a]">Probability split</h2>
+            {loading ? (
+              <p className="text-sm text-[#58706a]">Loading dashboard...</p>
+            ) : latest ? (
+              <ProbabilityChart values={probabilityValues} />
+            ) : (
+              <p className="text-sm text-[#58706a]">Submit a survey to generate probabilities.</p>
+            )}
+          </div>
+          {latest && history?.surveys?.[0] && (
+            <div className="rounded-lg border border-[#dce7e2] bg-white p-5">
+              <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[#58706a]">AI Justification</h2>
+              <p className="text-sm leading-relaxed text-[#58706a]">
+                {generateJustification(Number(latest.prediction_class), history.surveys[0].responses as Record<string, number>)}
+              </p>
+            </div>
           )}
         </div>
       </div>
     </section>
   );
+}
+
+function generateJustification(predictionClass: number, survey: Record<string, number> | undefined): string {
+  if (!survey) return "No survey data available to generate a justification.";
+  
+  const highRiskFactors = [];
+  const positiveFactors = [];
+  
+  if (Number(survey.anxiety_level) >= 6) highRiskFactors.push("high anxiety");
+  if (Number(survey.depression) >= 6) highRiskFactors.push("elevated depression indicators");
+  if (Number(survey.sleep_quality) <= 4) highRiskFactors.push("poor sleep quality");
+  if (Number(survey.academic_performance) <= 4) highRiskFactors.push("academic struggles");
+  if (Number(survey.study_load) >= 7) highRiskFactors.push("heavy study load");
+  if (Number(survey.peer_pressure) >= 7) highRiskFactors.push("significant peer pressure");
+  if (Number(survey.bullying) >= 5) highRiskFactors.push("bullying");
+  
+  if (Number(survey.self_esteem) >= 7) positiveFactors.push("strong self-esteem");
+  if (Number(survey.social_support) >= 7) positiveFactors.push("good social support");
+  if (Number(survey.safety) >= 7) positiveFactors.push("a feeling of safety");
+  
+  if (predictionClass === 0) {
+    if (positiveFactors.length > 0) {
+      return `The model classified this as Normal primarily because of positive indicators like ${positiveFactors.join(", ")}, and a lack of severe stress factors.`;
+    }
+    return "The model classified this as Normal because stress indicators (like anxiety, depression, or study load) are within manageable ranges.";
+  } else {
+    if (highRiskFactors.length > 0) {
+      return `The model flagged a Risk primarily due to: ${highRiskFactors.join(", ")}. These factors significantly elevate stress levels and warrant attention.`;
+    }
+    return "The model flagged a Risk based on a combination of elevated stress signals across the survey.";
+  }
 }
