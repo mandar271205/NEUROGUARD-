@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Mic, Square, Upload } from "lucide-react";
+import { BrainCircuit, Gauge, GitMerge, Mic, Radio, Square, Upload } from "lucide-react";
 import { api, getStudentId, type PredictionResponse } from "@/lib/api";
 import { ProbabilityChart } from "@/components/probability-chart";
 import { RiskBadge } from "@/components/risk-badge";
@@ -50,6 +50,10 @@ function encodeWav(samples: Float32Array, sampleRate: number) {
   return new Blob([view], { type: "audio/wav" });
 }
 
+function toPercent(value?: number | null) {
+  return Math.max(0, Math.min(100, Math.round(Number(value || 0) * 100)));
+}
+
 export function AudioRecorder() {
   const audioContextRef = useRef<AudioContext | null>(null);
   const processorRef = useRef<AudioWorkletNode | null>(null);
@@ -83,6 +87,12 @@ export function AudioRecorder() {
     }
     void checkAudioModel();
   }, []);
+
+  useEffect(() => {
+    return () => {
+      if (clipUrl) URL.revokeObjectURL(clipUrl);
+    };
+  }, [clipUrl]);
 
   async function startRecording() {
     if (!audioAvailable) return;
@@ -179,14 +189,23 @@ export function AudioRecorder() {
   }
 
   return (
-    <section className="mx-auto max-w-5xl px-4 py-8">
-      <div className="mb-6">
-        <h1 className="text-2xl font-semibold">Audio Recorder</h1>
-        <p className="text-sm text-[#58706a]">
+    <section className="page-wrap max-w-6xl">
+      <div className="mb-6 flex flex-col justify-between gap-4 md:flex-row md:items-end">
+        <div>
+          <p className="section-kicker">Voice stress pipeline</p>
+          <h1 className="mt-1 text-3xl font-semibold">Audio Recorder</h1>
+          <p className="mt-1 max-w-2xl text-sm text-[#58706a]">
           {audioAvailable
-            ? "Record a 10-second voice clip and send it to the audio stress pipeline."
+            ? "Record a 10-second voice clip and analyze it through the external SER backbone, NeuroGuard student model, and AAMO."
             : "Audio prediction is unavailable for the current backend."}
-        </p>
+          </p>
+        </div>
+        <span className={`inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold ${
+          audioAvailable ? "bg-emerald-50 text-emerald-800 ring-1 ring-emerald-200" : "bg-amber-50 text-amber-900 ring-1 ring-amber-200"
+        }`}>
+          <Radio size={14} />
+          {audioAvailable ? "Backend ready" : "Backend unavailable"}
+        </span>
       </div>
       {!audioAvailable && (
         <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
@@ -195,13 +214,33 @@ export function AudioRecorder() {
       )}
       {error && <div className="mb-4 rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">{error}</div>}
       <div className="grid gap-4 lg:grid-cols-[1fr_340px]">
-        <div className="rounded-lg border border-[#dce7e2] bg-white p-5">
+        <div className="surface-card p-5">
+          <div className="mb-5 rounded-lg border border-[#dce7e2] bg-[#f7faf9] p-4">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <p className="text-sm font-semibold">{recording ? "Listening now" : clip ? "Clip ready" : "Ready to record"}</p>
+                <p className="mt-1 text-xs text-[#58706a]">
+                  {recording ? "Speak naturally for the strongest signal." : "Use a clean, natural 8-10 second sample."}
+                </p>
+              </div>
+              <span className={`size-3 rounded-full ${recording ? "bg-[#d95d39]" : clip ? "bg-[#0f766e]" : "bg-[#dce7e2]"}`} />
+            </div>
+            <div className="mt-5 flex h-16 items-end gap-1" aria-hidden="true">
+              {Array.from({ length: 36 }).map((_, index) => (
+                <span
+                  key={index}
+                  className={`flex-1 rounded-t-sm ${recording ? "bg-[#0f766e]" : "bg-[#dce7e2]"}`}
+                  style={{ height: `${recording ? 22 + ((index * 17) % 39) : 16 + ((index * 9) % 22)}px`, opacity: recording ? 0.55 + ((index % 5) * 0.09) : 0.6 }}
+                />
+              ))}
+            </div>
+          </div>
           <div className="flex flex-wrap gap-3">
             {!recording ? (
               <button
                 onClick={startRecording}
                 disabled={!audioAvailable}
-                className="focus-ring inline-flex items-center gap-2 rounded-md bg-[#0f766e] px-4 py-2 font-semibold text-white"
+                className="focus-ring btn-primary px-4 py-2.5 disabled:opacity-50"
               >
                 <Mic size={18} />
                 Record
@@ -209,7 +248,7 @@ export function AudioRecorder() {
             ) : (
               <button
                 onClick={stopRecording}
-                className="focus-ring inline-flex items-center gap-2 rounded-md bg-[#d95d39] px-4 py-2 font-semibold text-white"
+                className="focus-ring inline-flex items-center justify-center gap-2 rounded-lg bg-[#d95d39] px-4 py-2.5 font-semibold text-white"
               >
                 <Square size={18} />
                 Stop
@@ -218,10 +257,10 @@ export function AudioRecorder() {
             <button
               onClick={uploadClip}
               disabled={!clip || loading || !audioAvailable}
-              className="focus-ring inline-flex items-center gap-2 rounded-md border border-[#dce7e2] bg-white px-4 py-2 font-semibold disabled:opacity-50"
+              className="focus-ring btn-secondary px-4 py-2.5 disabled:opacity-50"
             >
               <Upload size={18} />
-              {loading ? "Uploading" : "Upload clip"}
+              {loading ? "Analyzing" : "Analyze clip"}
             </button>
           </div>
           <div className="mt-6 rounded-md bg-[#eef5f2] p-4 text-sm text-[#58706a]">
@@ -229,37 +268,43 @@ export function AudioRecorder() {
           </div>
           {clipUrl && <audio className="mt-5 w-full" controls src={clipUrl} />}
         </div>
-        <aside className="rounded-lg border border-[#dce7e2] bg-white p-5">
+        <aside className="surface-card p-5">
           <h2 className="mb-4 text-sm font-semibold uppercase tracking-wide text-[#58706a]">Audio result</h2>
           {result ? (
             <div className="space-y-5">
               <div className="flex items-center justify-between">
                 <RiskBadge level={result.prediction} />
-                <span className="font-mono text-sm text-[#58706a]">{Math.round(result.confidence * 100)}%</span>
+                <span className="font-mono text-sm text-[#58706a]">{toPercent(result.confidence)}%</span>
               </div>
               <ProbabilityChart values={[result.confidence_0, result.confidence_1, result.confidence_2]} />
               {typeof result.final_stress === "number" && (
-                <div className="rounded-md bg-[#eef5f2] p-3 text-sm text-[#58706a]">
-                  <div className="flex justify-between">
-                    <span>Final stress</span>
-                    <span className="font-mono">{Math.round(result.final_stress * 100)}%</span>
-                  </div>
-                  <div className="mt-1 flex justify-between">
-                    <span>Baseline</span>
-                    <span className="font-mono">{Math.round(Number(result.stress_baseline || 0) * 100)}%</span>
-                  </div>
-                  <div className="mt-1 flex justify-between">
-                    <span>NeuroGuard</span>
-                    <span className="font-mono">{Math.round(Number(result.stress_neuroguard || 0) * 100)}%</span>
-                  </div>
-                  <div className="mt-3 border-t border-[#d4e2dc] pt-2">
+                <div className="space-y-3 rounded-md bg-[#eef5f2] p-3 text-sm text-[#58706a]">
+                  {[
+                    { label: "Final stress", value: result.final_stress, icon: Gauge, color: "#0f766e" },
+                    { label: "Baseline SER", value: result.stress_baseline, icon: GitMerge, color: "#245f9d" },
+                    { label: "NeuroGuard", value: result.stress_neuroguard, icon: BrainCircuit, color: "#d95d39" }
+                  ].map((item) => (
+                    <div key={item.label}>
+                      <div className="mb-1 flex items-center justify-between gap-3">
+                        <span className="inline-flex items-center gap-2">
+                          <item.icon size={15} style={{ color: item.color }} />
+                          {item.label}
+                        </span>
+                        <span className="font-mono">{toPercent(item.value)}%</span>
+                      </div>
+                      <div className="progress-track">
+                        <div className="progress-fill" style={{ width: `${toPercent(item.value)}%`, background: item.color }} />
+                      </div>
+                    </div>
+                  ))}
+                  <div className="border-t border-[#d4e2dc] pt-3">
                     <div className="flex justify-between">
                       <span>Baseline weight</span>
-                      <span className="font-mono">{Math.round(Number(result.weight_baseline || 0) * 100)}%</span>
+                      <span className="font-mono">{toPercent(result.weight_baseline)}%</span>
                     </div>
                     <div className="mt-1 flex justify-between">
                       <span>NeuroGuard weight</span>
-                      <span className="font-mono">{Math.round(Number(result.weight_neuroguard || 0) * 100)}%</span>
+                      <span className="font-mono">{toPercent(result.weight_neuroguard)}%</span>
                     </div>
                     <div className="mt-1 flex justify-between">
                       <span>AAMO</span>

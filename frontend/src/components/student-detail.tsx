@@ -35,18 +35,19 @@ export function StudentDetail({ studentId }: { studentId: string }) {
   );
 
   return (
-    <section className="mx-auto max-w-6xl px-4 py-8">
+    <section className="page-wrap">
       <div className="mb-6">
-        <h1 className="text-2xl font-semibold">{String(history?.student?.name || "Student Detail")}</h1>
-        <p className="text-sm text-[#58706a]">{String(history?.student?.email || studentId)}</p>
+        <p className="section-kicker">Student record</p>
+        <h1 className="mt-1 text-3xl font-semibold">{String(history?.student?.name || "Student Detail")}</h1>
+        <p className="mt-1 text-sm text-[#58706a]">{String(history?.student?.email || studentId)}</p>
       </div>
       {error && <div className="mb-4 rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">{error}</div>}
       <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
-        <div className="rounded-lg border border-[#dce7e2] bg-white p-5">
+        <div className="surface-card p-5">
           <h2 className="mb-4 font-semibold">Risk timeline</h2>
           {loading ? <p className="text-sm text-[#58706a]">Loading history...</p> : trend.length ? <RiskTrendChart points={trend} /> : <p className="text-sm text-[#58706a]">No predictions yet.</p>}
         </div>
-        <aside className="rounded-lg border border-[#dce7e2] bg-white p-5">
+        <aside className="surface-card p-5">
           <h2 className="mb-4 font-semibold">Prediction history</h2>
           {predictions.length ? (
             <div className="space-y-3">

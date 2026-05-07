@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { ClipboardList, Fingerprint, Mic, RefreshCw } from "lucide-react";
+import { Activity, ClipboardList, Fingerprint, History, Mic, RefreshCw, ShieldCheck } from "lucide-react";
 import { api, getStudentId, type HistoryResponse } from "@/lib/api";
 import { ProbabilityChart, RiskTrendChart } from "@/components/probability-chart";
 import { RiskBadge } from "@/components/risk-badge";
@@ -66,23 +66,54 @@ export function StudentDashboard() {
   );
 
   return (
-    <section className="mx-auto max-w-6xl px-4 py-8">
+    <section className="page-wrap">
       <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-2xl font-semibold">Student Dashboard</h1>
-          <p className="text-sm text-[#58706a]">Latest survey, voice enrolment, audio, and risk signals.</p>
+          <p className="section-kicker">Student workspace</p>
+          <h1 className="mt-1 text-3xl font-semibold">Your stress health overview</h1>
+          <p className="mt-1 text-sm text-[#58706a]">Latest survey, voice enrolment, audio, and risk signals in one place.</p>
         </div>
         <button
           onClick={load}
-          className="focus-ring inline-flex items-center gap-2 rounded-md border border-[#dce7e2] bg-white px-3 py-2 text-sm font-medium"
+          className="focus-ring btn-secondary px-3 py-2 text-sm"
         >
           <RefreshCw size={16} />
           Refresh
         </button>
       </div>
       {error && <div className="mb-4 rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">{error}</div>}
+      <div className="mb-4 grid gap-3 md:grid-cols-3">
+        <div className="metric-tile">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold uppercase text-[#58706a]">Latest risk</p>
+            <Activity size={17} className="text-[#0f766e]" />
+          </div>
+          <div className="mt-3">
+            <RiskBadge level={latest?.prediction_class} />
+          </div>
+          <p className="mt-3 text-xs text-[#58706a]">
+            {latest ? `${Math.round(Number(latest.confidence || 0) * 100)}% confidence` : "Waiting for first result"}
+          </p>
+        </div>
+        <div className="metric-tile">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold uppercase text-[#58706a]">History points</p>
+            <History size={17} className="text-[#245f9d]" />
+          </div>
+          <p className="mt-2 font-mono text-3xl font-semibold">{history?.predictions?.length || 0}</p>
+          <p className="mt-1 text-xs text-[#58706a]">Saved predictions</p>
+        </div>
+        <div className="metric-tile">
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-semibold uppercase text-[#58706a]">Privacy audit</p>
+            <ShieldCheck size={17} className="text-[#d95d39]" />
+          </div>
+          <p className="mt-2 font-mono text-3xl font-semibold">{history?.voice_enrolments?.length || 0}</p>
+          <p className="mt-1 text-xs text-[#58706a]">Voice vectors saved</p>
+        </div>
+      </div>
       <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
-        <div className="rounded-lg border border-[#dce7e2] bg-white p-5">
+        <div className="surface-card p-5">
           <div className="flex items-start justify-between gap-4">
             <div>
               <p className="text-sm text-[#58706a]">Current classification</p>
@@ -98,15 +129,15 @@ export function StudentDashboard() {
             </span>
           </div>
           <div className="mt-8 grid gap-3 sm:grid-cols-3">
-            <Link href="/survey" className="focus-ring inline-flex items-center justify-center gap-2 rounded-md bg-[#0f766e] px-4 py-3 font-semibold text-white">
+            <Link href="/survey" className="focus-ring btn-primary px-4 py-3">
               <ClipboardList size={18} />
               Take Survey
             </Link>
-            <Link href="/enrolment" className="focus-ring inline-flex items-center justify-center gap-2 rounded-md border border-[#dce7e2] bg-white px-4 py-3 font-semibold">
+            <Link href="/enrolment" className="focus-ring btn-secondary px-4 py-3">
               <Fingerprint size={18} />
               Voice Enrolment
             </Link>
-            <Link href="/audio" className="focus-ring inline-flex items-center justify-center gap-2 rounded-md border border-[#dce7e2] bg-white px-4 py-3 font-semibold">
+            <Link href="/audio" className="focus-ring btn-secondary px-4 py-3">
               <Mic size={18} />
               Record Audio
             </Link>
@@ -117,7 +148,7 @@ export function StudentDashboard() {
           </div>
         </div>
         <div className="flex flex-col gap-4">
-          <div className="rounded-lg border border-[#dce7e2] bg-white p-5">
+          <div className="quiet-card p-5">
             <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[#58706a]">Probability split</h2>
             {loading ? (
               <p className="text-sm text-[#58706a]">Loading dashboard...</p>
@@ -128,14 +159,14 @@ export function StudentDashboard() {
             )}
           </div>
           {latest && history?.surveys?.[0] && (
-            <div className="rounded-lg border border-[#dce7e2] bg-white p-5">
+            <div className="quiet-card p-5">
               <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[#58706a]">AI Justification</h2>
               <p className="text-sm leading-relaxed text-[#58706a]">
                 {generateJustification(Number(latest.prediction_class), history.surveys[0].responses as Record<string, number>)}
               </p>
             </div>
           )}
-          <div className="rounded-lg border border-[#dce7e2] bg-white p-5">
+          <div className="quiet-card p-5">
             <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[#58706a]">Privacy audit</h2>
             <p className="text-sm text-[#58706a]">
               {history?.voice_enrolments?.length

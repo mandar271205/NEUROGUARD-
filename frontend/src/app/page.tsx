@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Activity, LogIn, ShieldCheck, UserPlus } from "lucide-react";
+import { Activity, ArrowRight, BrainCircuit, HeartPulse, LockKeyhole, LogIn, ShieldCheck, UserPlus } from "lucide-react";
 import { api } from "@/lib/api";
 import { hasSupabaseConfig } from "@/lib/config";
 import { getSupabase } from "@/lib/supabase";
@@ -108,28 +108,41 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="min-h-screen bg-[#f7faf9] px-4 py-10">
-      <section className="mx-auto grid min-h-[calc(100vh-5rem)] w-full max-w-6xl items-center gap-6 lg:grid-cols-[1fr_430px]">
+    <main className="min-h-screen px-4 py-8">
+      <section className="mx-auto grid min-h-[calc(100vh-4rem)] w-full max-w-7xl items-center gap-8 lg:grid-cols-[1fr_440px]">
         <div className="hidden lg:block">
-          <span className="mb-5 grid size-14 place-items-center rounded-lg bg-[#0f766e] text-white">
+          <span className="mb-6 inline-flex items-center gap-2 rounded-full border border-[#dce7e2] bg-white px-3 py-1 text-xs font-semibold text-[#58706a] shadow-sm">
+            <span className="size-2 rounded-full bg-[#0f766e]" />
+            NeuroGuard v2 live prototype
+          </span>
+          <span className="mb-5 grid size-14 place-items-center rounded-lg bg-[#0f766e] text-white shadow-xl shadow-teal-900/15">
             <Activity size={24} />
           </span>
-          <h1 className="max-w-xl text-5xl font-semibold leading-tight">
-            NeuroGuard
+          <h1 className="max-w-2xl text-6xl font-semibold leading-tight">
+            NeuroGuard student stress intelligence
           </h1>
-          <p className="mt-4 max-w-xl text-lg text-[#58706a]">
-            Separate student and counsellor portals for survey ML, audio biomarkers, history views, and high-risk alerts.
+          <p className="mt-5 max-w-2xl text-lg leading-8 text-[#58706a]">
+            A calmer dashboard for survey ML, voice stress detection, personalized enrolment, adaptive model orchestration, and counsellor alerts.
           </p>
-          <div className="mt-8 grid max-w-2xl gap-3 sm:grid-cols-3">
-            {["Survey RF", "Audio MLP", "Fusion GB"].map((item) => (
-              <div key={item} className="rounded-lg border border-[#dce7e2] bg-white p-4 shadow-sm">
-                <span className="text-sm font-semibold text-[#0f766e]">{item}</span>
-                <p className="mt-2 text-xs text-[#58706a]">Live model pipeline</p>
+          <div className="mt-8 grid max-w-3xl gap-3 sm:grid-cols-3">
+            {[
+              { icon: BrainCircuit, title: "Multi-model AI", copy: "RF, LSTM, SER, AAMO" },
+              { icon: HeartPulse, title: "Voice pipeline", copy: "Baseline + NeuroGuard" },
+              { icon: LockKeyhole, title: "Privacy layer", copy: "Enrolment + audit" }
+            ].map((item) => (
+              <div key={item.title} className="quiet-card p-4">
+                <item.icon size={20} className="text-[#0f766e]" />
+                <span className="mt-3 block text-sm font-semibold text-[#17211f]">{item.title}</span>
+                <p className="mt-1 text-xs text-[#58706a]">{item.copy}</p>
               </div>
             ))}
           </div>
+          <div className="mt-8 flex items-center gap-3 text-sm text-[#58706a]">
+            <span className="h-px w-12 bg-[#dce7e2]" />
+            Built for student check-ins, counsellor review, and research demos.
+          </div>
         </div>
-        <div className="rounded-lg border border-[#dce7e2] bg-white p-6 shadow-sm">
+        <div className="surface-card p-6">
           <div className="mb-6 flex items-center gap-3 lg:hidden">
             <span className="grid size-12 place-items-center rounded-lg bg-[#0f766e] text-white">
               <Activity size={24} />
@@ -187,7 +200,7 @@ export default function LoginPage() {
                 onChange={(event) => setName(event.target.value)}
                 type="text"
                 required
-                className="focus-ring mt-1 w-full rounded-md border border-[#dce7e2] px-3 py-2"
+                className="focus-ring input-field mt-1 w-full"
               />
             </label>
           )}
@@ -198,7 +211,7 @@ export default function LoginPage() {
               onChange={(event) => setEmail(event.target.value)}
               type="email"
               required
-              className="focus-ring mt-1 w-full rounded-md border border-[#dce7e2] px-3 py-2"
+              className="focus-ring input-field mt-1 w-full"
             />
           </label>
           <label className="block">
@@ -209,7 +222,7 @@ export default function LoginPage() {
               type="password"
               required
               minLength={6}
-              className="focus-ring mt-1 w-full rounded-md border border-[#dce7e2] px-3 py-2"
+              className="focus-ring input-field mt-1 w-full"
             />
           </label>
           {error && <p className="rounded-md bg-rose-50 px-3 py-2 text-sm text-rose-700">{error}</p>}
@@ -217,7 +230,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="focus-ring inline-flex w-full items-center justify-center gap-2 rounded-md bg-[#0f766e] px-4 py-2 font-semibold text-white disabled:opacity-60"
+            className="focus-ring btn-primary w-full px-4 py-2.5 disabled:opacity-60"
           >
             {mode === "student-signup" && <UserPlus size={18} />}
             {mode === "student-signin" && <LogIn size={18} />}
@@ -229,6 +242,7 @@ export default function LoginPage() {
                 : mode === "counsellor-signin"
                   ? "Counsellor Sign in"
                   : "Student Sign in"}
+            {!loading && <ArrowRight size={17} />}
           </button>
         </form>
         </div>

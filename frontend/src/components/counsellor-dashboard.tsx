@@ -57,11 +57,12 @@ export function CounsellorDashboard() {
   );
 
   return (
-    <section className="mx-auto max-w-7xl px-4 py-8">
+    <section className="page-wrap max-w-7xl">
       <div className="mb-6 flex flex-col justify-between gap-4 xl:flex-row xl:items-end">
         <div>
-          <h1 className="text-2xl font-semibold">Counsellor Dashboard</h1>
-          <p className="text-sm text-[#58706a]">Assigned students, latest risks, and realtime high-risk alerts.</p>
+          <p className="section-kicker">Counsellor command center</p>
+          <h1 className="mt-1 text-3xl font-semibold">Student risk review</h1>
+          <p className="mt-1 text-sm text-[#58706a]">Assigned students, latest risks, and realtime high-risk alerts.</p>
         </div>
         <label className="relative block w-full max-w-sm">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-[#58706a]" size={17} />
@@ -69,13 +70,13 @@ export function CounsellorDashboard() {
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search students"
-            className="focus-ring w-full rounded-md border border-[#dce7e2] bg-white py-2 pl-10 pr-3 text-sm"
+            className="focus-ring input-field w-full py-2 pl-10 pr-3 text-sm"
           />
         </label>
       </div>
       {error && <div className="mb-4 rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">{error}</div>}
       <div className="grid gap-4 xl:grid-cols-[1fr_340px]">
-        <div className="rounded-lg border border-[#dce7e2] bg-white">
+        <div className="surface-card overflow-hidden">
           <div className="flex items-center gap-2 border-b border-[#dce7e2] p-4">
             <Users size={18} className="text-[#0f766e]" />
             <h2 className="font-semibold">Students</h2>
@@ -90,7 +91,7 @@ export function CounsellorDashboard() {
                   <Link
                     key={student.id}
                     href={`/dashboard/students/${student.id}`}
-                    className="grid gap-3 p-4 hover:bg-[#eef5f2] md:grid-cols-[1fr_140px_120px]"
+                    className="grid gap-3 p-4 transition hover:bg-[#eef5f2] md:grid-cols-[1fr_140px_120px]"
                   >
                     <span>
                       <span className="block font-medium">{student.name || "Unnamed student"}</span>

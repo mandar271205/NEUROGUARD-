@@ -49,20 +49,21 @@ export function VoiceEnrolment() {
   }
 
   return (
-    <section className="mx-auto max-w-5xl px-4 py-8">
+    <section className="page-wrap max-w-6xl">
       <div className="mb-6 flex items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold">Voice Enrolment</h1>
-          <p className="text-sm text-[#58706a]">Upload 2-3 short voice clips to create a private personalization vector.</p>
+          <p className="section-kicker">Personalization</p>
+          <h1 className="mt-1 text-3xl font-semibold">Voice Enrolment</h1>
+          <p className="mt-1 text-sm text-[#58706a]">Upload 2-3 short voice clips to create a private personalization vector.</p>
         </div>
-        <Link href="/dashboard/student" className="focus-ring inline-flex items-center gap-2 rounded-md border border-[#dce7e2] bg-white px-3 py-2 text-sm font-medium">
+        <Link href="/dashboard/student" className="focus-ring btn-secondary px-3 py-2 text-sm">
           <ArrowLeft size={16} />
           Dashboard
         </Link>
       </div>
       {error && <div className="mb-4 rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">{error}</div>}
       <div className="grid gap-4 lg:grid-cols-[1fr_340px]">
-        <div className="rounded-lg border border-[#dce7e2] bg-white p-5">
+        <div className="surface-card p-5">
           <label className="block">
             <span className="text-sm font-medium">Voice samples</span>
             <input
@@ -70,7 +71,7 @@ export function VoiceEnrolment() {
               accept="audio/*,.wav"
               multiple
               onChange={(event) => setFiles(event.target.files)}
-              className="focus-ring mt-2 w-full rounded-md border border-[#dce7e2] px-3 py-2"
+              className="focus-ring input-field mt-2 w-full"
             />
           </label>
           <div className="mt-5 rounded-md bg-[#eef5f2] p-4 text-sm text-[#58706a]">
@@ -81,13 +82,13 @@ export function VoiceEnrolment() {
           <button
             onClick={submitEnrolment}
             disabled={loading}
-            className="focus-ring mt-5 inline-flex items-center gap-2 rounded-md bg-[#0f766e] px-4 py-2 font-semibold text-white disabled:opacity-60"
+            className="focus-ring btn-primary mt-5 px-4 py-2.5 disabled:opacity-60"
           >
             <Upload size={18} />
             {loading ? "Creating vector" : "Create enrolment vector"}
           </button>
         </div>
-        <aside className="rounded-lg border border-[#dce7e2] bg-white p-5">
+        <aside className="surface-card p-5">
           <div className="mb-4 flex items-center gap-2">
             <Fingerprint size={18} className="text-[#0f766e]" />
             <h2 className="text-sm font-semibold uppercase tracking-wide text-[#58706a]">Personalization</h2>

@@ -41,7 +41,7 @@ export function AlertsPanel() {
   }, []);
 
   return (
-    <section id="alerts" className="rounded-lg border border-[#dce7e2] bg-white p-5">
+    <section id="alerts" className="surface-card p-5">
       <div className="mb-4 flex items-center gap-2">
         <BellRing size={18} className="text-[#d95d39]" />
         <h2 className="text-sm font-semibold uppercase tracking-wide text-[#58706a]">Realtime alerts</h2>

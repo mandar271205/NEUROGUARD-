@@ -1,16 +1,19 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f7faf9;
+  --background: #f4f7f5;
   --foreground: #17211f;
   --panel: #ffffff;
-  --panel-muted: #eef5f2;
-  --line: #dce7e2;
+  --panel-muted: #edf4f0;
+  --line: #d9e6df;
   --ink-soft: #58706a;
   --teal: #0f766e;
+  --teal-dark: #0a4f49;
   --coral: #d95d39;
   --amber: #d89b1d;
-  --blue: #2b6cb0;
+  --blue: #245f9d;
+  --indigo: #334155;
+  --shadow: 0 18px 50px rgba(23, 33, 31, 0.09);
 }
 
 @theme inline {
@@ -25,7 +28,10 @@
 }
 
 body {
-  background: var(--background);
+  min-height: 100vh;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(244, 247, 245, 0.94) 34rem),
+    var(--background);
   color: var(--foreground);
 }
 
@@ -42,4 +48,109 @@ textarea {
 
 .focus-ring:focus-visible {
   box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.22);
+}
+
+.page-wrap {
+  margin-inline: auto;
+  width: min(100%, 80rem);
+  padding: 2rem 1rem;
+}
+
+@media (min-width: 768px) {
+  .page-wrap {
+    padding: 2.5rem 1.5rem;
+  }
+}
+
+.surface-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.94);
+  box-shadow: var(--shadow);
+}
+
+.quiet-card {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.section-kicker {
+  color: var(--teal);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.muted-copy {
+  color: var(--ink-soft);
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: 8px;
+  background: var(--teal);
+  color: #fff;
+  font-weight: 700;
+  transition: transform 150ms ease, background-color 150ms ease, box-shadow 150ms ease;
+}
+
+.btn-primary:hover {
+  background: var(--teal-dark);
+  box-shadow: 0 10px 24px rgba(15, 118, 110, 0.18);
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  font-weight: 700;
+  transition: transform 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.btn-secondary:hover {
+  border-color: rgba(15, 118, 110, 0.45);
+  box-shadow: 0 10px 22px rgba(23, 33, 31, 0.08);
+  transform: translateY(-1px);
+}
+
+.input-field {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  padding: 0.7rem 0.85rem;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.input-field:focus {
+  border-color: rgba(15, 118, 110, 0.55);
+}
+
+.metric-tile {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: linear-gradient(180deg, #fff, #f8fbfa);
+  padding: 1rem;
+}
+
+.progress-track {
+  height: 0.55rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #dfe9e4;
+}
+
+.progress-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--teal);
 }
