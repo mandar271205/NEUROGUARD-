@@ -33,6 +33,32 @@ class Settings(BaseSettings):
     supabase_jwt_audience: str | None = Field(
         default="authenticated", alias="SUPABASE_JWT_AUDIENCE"
     )
+    polygon_amoy_rpc_url: str | None = Field(default=None, alias="POLYGON_AMOY_RPC_URL")
+    consent_contract_address: str | None = Field(default=None, alias="CONSENT_CONTRACT_ADDRESS")
+    audit_contract_address: str | None = Field(default=None, alias="AUDIT_CONTRACT_ADDRESS")
+    external_stress_repo_dir: str = Field(
+        default=str(PROJECT_ROOT / "third_party" / "Stress-Detection-Through-Speech-Emotion-Recognition"),
+        alias="EXTERNAL_STRESS_REPO_DIR",
+    )
+    audio_student_checkpoint: str = Field(
+        default=str(BACKEND_ROOT / "models" / "neuroguard_audio_student.pt"),
+        alias="AUDIO_STUDENT_CHECKPOINT",
+    )
+    stress_baseline_weight: float = Field(default=0.2, alias="STRESS_BASELINE_WEIGHT")
+    aamo_window_size: int = Field(default=50, alias="AAMO_WINDOW_SIZE")
+    aamo_min_window_for_adaptive: int = Field(default=10, alias="AAMO_MIN_WINDOW_FOR_ADAPTIVE")
+    aamo_cold_start_weight_baseline: float = Field(default=0.7, alias="AAMO_COLD_START_WEIGHT_BASELINE")
+    aamo_cold_start_weight_neuroguard: float = Field(default=0.3, alias="AAMO_COLD_START_WEIGHT_NEUROGUARD")
+    aamo_critical_health_threshold: float = Field(default=0.2, alias="AAMO_CRITICAL_HEALTH_THRESHOLD")
+    aamo_fallback_weight_baseline: float = Field(default=0.95, alias="AAMO_FALLBACK_WEIGHT_BASELINE")
+    aamo_fallback_weight_neuroguard: float = Field(default=0.05, alias="AAMO_FALLBACK_WEIGHT_NEUROGUARD")
+    aamo_neuroguard_boost_factor: float = Field(default=1.5, alias="AAMO_NEUROGUARD_BOOST_FACTOR")
+    aamo_health_variance_weight: float = Field(default=0.5, alias="AAMO_HEALTH_VARIANCE_WEIGHT")
+    aamo_health_range_weight: float = Field(default=0.3, alias="AAMO_HEALTH_RANGE_WEIGHT")
+    aamo_health_mode_penalty_weight: float = Field(default=0.2, alias="AAMO_HEALTH_MODE_PENALTY_WEIGHT")
+    aamo_expected_var_baseline: float = Field(default=0.05, alias="AAMO_EXPECTED_VAR_BASELINE")
+    aamo_expected_var_neuroguard: float = Field(default=0.05, alias="AAMO_EXPECTED_VAR_NEUROGUARD")
+    aamo_expected_range: float = Field(default=0.6, alias="AAMO_EXPECTED_RANGE")
 
     model_config = SettingsConfigDict(
         env_file=".env",

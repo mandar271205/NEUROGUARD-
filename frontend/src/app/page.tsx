@@ -55,8 +55,19 @@ export default function LoginPage() {
           }
         });
         if (signUpError) throw signUpError;
-        if (!data.session) {
-          setMessage("Account created. Confirm your email, then sign in.");
+        if (!data.session && data.user) {
+          // Auto-confirm the user since email confirmation is turned off in UI
+          try {
+            await fetch("/api/auth/auto-confirm", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ userId: data.user.id }),
+            });
+          } catch (e) {
+            console.error("Auto-confirm failed:", e);
+          }
+          
+          setMessage("Account created successfully! You can now sign in.");
           setMode("student-signin");
           return;
         }

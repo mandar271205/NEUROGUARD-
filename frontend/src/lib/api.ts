@@ -12,6 +12,21 @@ export type PredictionResponse = {
   confidence: number;
   model_type: string;
   saved_prediction_id?: string | null;
+  audit_hash?: string | null;
+  risk_level?: string | null;
+  stress_baseline?: number;
+  stress_neuroguard?: number;
+  final_stress?: number;
+  weight_baseline?: number;
+  weight_neuroguard?: number;
+  health_baseline?: number;
+  health_neuroguard?: number;
+  orchestrator_mode?: string;
+  orchestrator_window_scope?: string;
+  orchestrator_window_size?: number;
+  baseline_source?: string;
+  neuroguard_source?: string;
+  baseline_available?: boolean;
 };
 
 export type HistoryResponse = {
@@ -19,6 +34,8 @@ export type HistoryResponse = {
   surveys: Array<Record<string, unknown>>;
   predictions: Array<Record<string, unknown>>;
   audio_files: Array<Record<string, unknown>>;
+  voice_enrolments: Array<Record<string, unknown>>;
+  audit_events: Array<Record<string, unknown>>;
 };
 
 export const api = axios.create({

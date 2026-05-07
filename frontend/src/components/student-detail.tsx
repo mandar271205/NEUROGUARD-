@@ -24,7 +24,7 @@ export function StudentDetail({ studentId }: { studentId: string }) {
     void load();
   }, [studentId]);
 
-  const predictions = history?.predictions || [];
+  const predictions = useMemo(() => history?.predictions || [], [history?.predictions]);
   const trend = useMemo(
     () =>
       [...predictions].reverse().map((item) => ({

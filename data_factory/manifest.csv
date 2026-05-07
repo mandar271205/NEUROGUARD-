@@ -1,0 +1,9 @@
+file_path,label,prompt,speaker_id
+data_factory\synth_stress\stress_0001.wav,stress,"Mera exam kal hai, mujhe bahut tension ho rahi hai.",synthetic_indian_student
+data_factory\synth_stress\neutral_0002.wav,neutral,"Aaj ka lecture bohot heavy laga, focus nahi ho raha.",synthetic_indian_student
+data_factory\synth_stress\stress_0003.wav,stress,"Friends ka pressure zyada hai, samajh nahi aa raha kya karu.",synthetic_indian_student
+data_factory\synth_stress\stress_0004.wav,stress,Assignment deadline pass aa rahi hai aur neend bhi nahi ho rahi.,synthetic_indian_student
+data_factory\synth_stress\stress_0005.wav,stress,Mujhe lag raha hai main sabse peeche reh gaya hoon.,synthetic_indian_student
+data_factory\synth_stress\neutral_0006.wav,neutral,"Aaj mood calm hai, classes manageable thi.",synthetic_indian_student
+data_factory\synth_stress\neutral_0007.wav,neutral,"Kal ka test theek gaya, ab thoda relaxed feel ho raha hai.",synthetic_indian_student
+data_factory\synth_stress\stress_0008.wav,stress,"Group project ka workload uneven hai, isliye stress badh raha hai.",synthetic_indian_student

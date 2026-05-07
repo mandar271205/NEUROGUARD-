@@ -1,0 +1,8 @@
+torch>=2.3.0
+torchaudio>=2.3.0
+torchcodec>=0.9.0
+funasr>=1.2.6
+modelscope>=1.17.1
+tqdm>=4.66.0
+numpy>=1.26.0
+imageio-ffmpeg>=0.6.0

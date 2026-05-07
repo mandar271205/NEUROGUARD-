@@ -23,6 +23,8 @@ The project was built for the Python for Data Science final project at Sardar Pa
 - FastAPI backend that loads the trained Google Colab model artifacts directly from the project folder.
 - Supabase Auth, PostgreSQL, Row Level Security, and Realtime events.
 - Local-first setup that runs on a laptop and can be deployed to Vercel + Render/Railway + Supabase.
+- NeuroGuard v2 scaffolding for voice enrolment, privacy audit hashes, ZK-FL circuits, Flower-style FL simulation, and Polygon Amoy contracts.
+- Option B training path: SenseVoiceSmall as an offline teacher, NeuroGuard as the personalized deployed student model.
 
 ## Architecture
 
@@ -62,7 +64,13 @@ Supabase PostgreSQL
 |   +-- src/lib/               # API, Supabase client, survey schema
 +-- PDS MODEL 2/               # Colab plots and trained models
 +-- supabase/
-    +-- schema.sql             # tables, indexes, RLS, realtime publication
+|   +-- schema.sql             # tables, indexes, RLS, realtime publication
++-- contracts/                 # Polygon Amoy ConsentDAO and Audit contracts
++-- circuits/                  # Circom local-training and aggregation proof scaffolds
++-- data_factory/              # Hinglish synthetic prompt manifest tooling
++-- docs/
++-- fl/
++-- training/                  # Option B distillation training pipeline
 ```
 
 ## Machine Learning
@@ -77,7 +85,7 @@ Supabase PostgreSQL
 
 The backend automatically looks for models in `PDS MODEL 2/` during local development, with `PDS MODEL1/` kept as a fallback for older copies. For Docker or cloud deployment, copy the same model files into `backend/models/`.
 
-Note: `PDS MODEL 2` does not include `neuroguard_audio.keras`. The app therefore disables audio prediction until a compatible audio model file is added. Survey, fusion-with-neutral-audio, and temporal LSTM paths still load.
+Note: if a folder does not include `neuroguard_audio.keras`, the v2 backend can still run the deterministic audio heuristic fallback. A trained audio model should replace that fallback for final evaluation.
 
 ## Features
 
@@ -87,7 +95,7 @@ Note: `PDS MODEL 2` does not include `neuroguard_audio.keras`. The app therefore
 - Sign in after account creation.
 - Fill the 20-question survey.
 - Use the survey model and see both Random Forest and temporal LSTM predictions.
-- Audio recording is shown only as available when the model folder includes `neuroguard_audio.keras`.
+- Audio recording works with the trained audio model when present, or the v2 heuristic fallback during development.
 - View latest risk class, confidence, probabilities, and trend chart.
 
 ### Counsellor
@@ -109,6 +117,47 @@ Note: `PDS MODEL 2` does not include `neuroguard_audio.keras`. The app therefore
 - `GET /students/{id}/history`
 - `POST /surveys`
 - `POST /audio/upload`
+- `POST /enrolments/voice`
+- `POST /consent`
+
+## NeuroGuard v2 Additions
+
+- Voice enrolment creates a compact `z_vector` from 1-3 uploaded audio samples.
+- Audio prediction now falls back to a deterministic acoustic heuristic if `neuroguard_audio.keras` is unavailable.
+- `/predict/stress_voice` combines the external GitHub stress-backbone adapter with the NeuroGuard personalized audio student.
+- High-risk predictions write audit hashes to Supabase `audit_events`.
+- `contracts/` contains deployable Polygon Amoy `ConsentDAO` and `Audit` contracts.
+- `circuits/` contains compact Circom proof scaffolds for local training and FedAvg aggregation.
+- `training/` contains the Option B knowledge-distillation path using SenseVoiceSmall as a frozen offline teacher.
+
+See `docs/NEUROGUARD_V2_EXECUTION.md` for the week-by-week execution checklist.
+
+## Option B Distillation
+
+Option B is the recommended v2 training path:
+
+```text
+SenseVoiceSmall teacher -> soft SER labels -> NeuroGuard student + z_vector -> deployed stress score
+```
+
+The teacher is used only during training. At runtime, FastAPI serves only the NeuroGuard model, so privacy and personalization stay under this project.
+
+```powershell
+pip install -r training/requirements.txt
+python -m training.train_distillation --manifest data_factory/manifest.csv
+```
+
+## External Voice Backbone
+
+The repo has been cloned locally at:
+
+```text
+third_party/Stress-Detection-Through-Speech-Emotion-Recognition
+```
+
+The upstream repository is MIT licensed, but its trained model/modelconfig assets are not included upstream. NeuroGuard's `POST /predict/stress_voice` route now targets `backbone_independent/` and will use those assets when they are supplied; until then it reports `baseline_available=false` and uses a feature fallback for `stress_baseline`.
+
+See `docs/WINDOWS_REALTIME_SER_PRD.md` for the Windows real-time microphone requirements and artifact checklist.
 
 ## Supabase Setup
 

@@ -12,3 +12,11 @@ build/
 .DS_Store
 *.mp4
 *.zip
+
+# Downloaded SER datasets and generated training audio are large local assets.
+saved_models/
+saved_modelconfigs/
+third_party/downloads/
+third_party/Resources/
+third_party/Stress-Detection-Through-Speech-Emotion-Recognition/backbone/base_store/
+third_party/Stress-Detection-Through-Speech-Emotion-Recognition/base_store/

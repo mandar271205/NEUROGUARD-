@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { ClipboardList, Mic, RefreshCw } from "lucide-react";
+import { ClipboardList, Fingerprint, Mic, RefreshCw } from "lucide-react";
 import { api, getStudentId, type HistoryResponse } from "@/lib/api";
 import { ProbabilityChart, RiskTrendChart } from "@/components/probability-chart";
 import { RiskBadge } from "@/components/risk-badge";
@@ -42,7 +42,10 @@ export function StudentDashboard() {
   }
 
   useEffect(() => {
-    void load();
+    const timer = window.setTimeout(() => {
+      void load();
+    }, 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   const latest = latestPrediction(history);
@@ -67,7 +70,7 @@ export function StudentDashboard() {
       <div className="mb-6 flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
         <div>
           <h1 className="text-2xl font-semibold">Student Dashboard</h1>
-          <p className="text-sm text-[#58706a]">Latest survey, audio, and risk signals.</p>
+          <p className="text-sm text-[#58706a]">Latest survey, voice enrolment, audio, and risk signals.</p>
         </div>
         <button
           onClick={load}
@@ -94,10 +97,14 @@ export function StudentDashboard() {
               {latest?.created_at ? new Date(latest.created_at).toLocaleString() : "No survey yet"}
             </span>
           </div>
-          <div className="mt-8 grid gap-3 sm:grid-cols-2">
+          <div className="mt-8 grid gap-3 sm:grid-cols-3">
             <Link href="/survey" className="focus-ring inline-flex items-center justify-center gap-2 rounded-md bg-[#0f766e] px-4 py-3 font-semibold text-white">
               <ClipboardList size={18} />
               Take Survey
+            </Link>
+            <Link href="/enrolment" className="focus-ring inline-flex items-center justify-center gap-2 rounded-md border border-[#dce7e2] bg-white px-4 py-3 font-semibold">
+              <Fingerprint size={18} />
+              Voice Enrolment
             </Link>
             <Link href="/audio" className="focus-ring inline-flex items-center justify-center gap-2 rounded-md border border-[#dce7e2] bg-white px-4 py-3 font-semibold">
               <Mic size={18} />
@@ -128,6 +135,19 @@ export function StudentDashboard() {
               </p>
             </div>
           )}
+          <div className="rounded-lg border border-[#dce7e2] bg-white p-5">
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[#58706a]">Privacy audit</h2>
+            <p className="text-sm text-[#58706a]">
+              {history?.voice_enrolments?.length
+                ? `${history.voice_enrolments.length} voice enrolment vector saved.`
+                : "No voice enrolment vector yet."}
+            </p>
+            <p className="mt-2 text-sm text-[#58706a]">
+              {history?.audit_events?.length
+                ? `${history.audit_events.length} high-risk audit event${history.audit_events.length === 1 ? "" : "s"} recorded.`
+                : "No high-risk audit events recorded."}
+            </p>
+          </div>
         </div>
       </div>
     </section>

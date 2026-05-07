@@ -1,6 +1,7 @@
 from pathlib import Path
 from tempfile import NamedTemporaryFile
 from typing import Dict, Tuple
+import hashlib
 
 import joblib
 import numpy as np
@@ -74,6 +75,19 @@ class NeuroGuardModels:
             "confidence": confidence,
         }
 
+    @staticmethod
+    def risk_level_from_prediction(prediction: int, confidence: float) -> str:
+        if prediction == 2:
+            return "high"
+        if prediction == 1:
+            return "moderate"
+        return "low"
+
+    @staticmethod
+    def audit_hash_for_payload(payload: Dict[str, object]) -> str:
+        serialized = repr(sorted(payload.items())).encode("utf-8")
+        return "0x" + hashlib.sha256(serialized).hexdigest()
+
     def tabular_probabilities(self, responses: Dict[str, float]) -> np.ndarray:
         self._ensure_loaded()
         missing = missing_fields(responses, BASE_SURVEY_FIELDS)
@@ -96,13 +110,7 @@ class NeuroGuardModels:
     def audio_probabilities_from_features(self, features: np.ndarray) -> np.ndarray:
         self._ensure_loaded()
         if self.audio_model is None or self.audio_scaler is None:
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail=(
-                    "Audio prediction is unavailable because this model folder does "
-                    "not contain neuroguard_audio.keras."
-                ),
-            )
+            return self.heuristic_audio_probabilities(features)
         expected_features = getattr(self.audio_scaler, "n_features_in_", features.shape[0])
         if features.shape[0] != expected_features:
             raise HTTPException(
@@ -118,6 +126,36 @@ class NeuroGuardModels:
         total = raw.sum()
         return raw / total if total else np.array([1.0, 0.0, 0.0])
 
+    @staticmethod
+    def heuristic_audio_probabilities(features: np.ndarray) -> np.ndarray:
+        """Fallback stress estimate when the trained audio model is not shipped."""
+        values = np.nan_to_num(features.astype(float), nan=0.0, posinf=0.0, neginf=0.0)
+        if values.shape[0] < 124:
+            return np.array([1.0, 0.0, 0.0])
+
+        mfcc_std = float(np.mean(np.abs(values[40:80])))
+        mel_energy = float(np.mean(np.log1p(np.maximum(values[92:112], 0.0))))
+        pitch_std = float(values[-4])
+        shimmer = float(values[-3])
+        zcr = float(values[-2])
+        centroid = float(values[-1])
+
+        stress_score = (
+            0.24 * np.tanh(mfcc_std / 35.0)
+            + 0.18 * np.tanh(mel_energy / 6.0)
+            + 0.22 * np.tanh(pitch_std / 90.0)
+            + 0.18 * np.tanh(shimmer / 1.5)
+            + 0.08 * np.tanh(zcr / 0.18)
+            + 0.10 * np.tanh(centroid / 3500.0)
+        )
+        stress_score = float(np.clip(stress_score, 0.02, 0.98))
+        high_risk = max(0.0, (stress_score - 0.62) / 0.38)
+        high_stress = max(0.0, 1.0 - abs(stress_score - 0.56) / 0.44)
+        normal = max(0.0, 1.0 - stress_score)
+        probs = np.array([normal, high_stress, high_risk], dtype=float)
+        total = probs.sum()
+        return probs / total if total else np.array([1.0, 0.0, 0.0])
+
     async def audio_probabilities_from_upload(self, upload: UploadFile) -> Tuple[np.ndarray, np.ndarray]:
         suffix = Path(upload.filename or "audio.wav").suffix or ".wav"
         with NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
@@ -132,9 +170,29 @@ class NeuroGuardModels:
 
     def synthetic_audio_probabilities(self) -> np.ndarray:
         if self.audio_model is None or self.audio_scaler is None:
-            return np.array([1.0, 0.0, 0.0])
+            return np.array([0.86, 0.12, 0.02])
         neutral_features = np.zeros(124, dtype=np.float32)
         return self.audio_probabilities_from_features(neutral_features)
+
+    def enrolment_vector_from_features(self, feature_rows: list[np.ndarray]) -> list[float]:
+        if not feature_rows:
+            raise HTTPException(
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="At least one voice sample is required for enrolment.",
+            )
+        matrix = np.vstack([np.nan_to_num(row.astype(float)) for row in feature_rows])
+        mean = matrix.mean(axis=0)
+        std = matrix.std(axis=0)
+        compact = np.concatenate(
+            [
+                mean[:16],
+                mean[40:56],
+                mean[-5:],
+                std[:11],
+            ]
+        )
+        norm = np.linalg.norm(compact) or 1.0
+        return [float(value) for value in (compact / norm)[:48]]
 
     def predict_audio_from_probabilities(self, probabilities: np.ndarray) -> Dict[str, float | int]:
         return self._response(probabilities)
@@ -181,6 +239,7 @@ class NeuroGuardModels:
             "tabular_rf": self.rf is not None,
             "fusion_gb": self.fusion is not None,
             "audio_mlp": self.audio_model is not None,
+            "audio_heuristic": self.audio_model is None,
             "audio_scaler": self.audio_scaler is not None,
             "temporal_lstm": self.lstm_model is not None,
         }

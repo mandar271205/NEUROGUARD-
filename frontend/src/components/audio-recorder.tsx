@@ -52,7 +52,8 @@ function encodeWav(samples: Float32Array, sampleRate: number) {
 
 export function AudioRecorder() {
   const audioContextRef = useRef<AudioContext | null>(null);
-  const processorRef = useRef<ScriptProcessorNode | null>(null);
+  const processorRef = useRef<AudioWorkletNode | null>(null);
+  const monitorGainRef = useRef<GainNode | null>(null);
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const chunksRef = useRef<Float32Array[]>([]);
@@ -70,7 +71,12 @@ export function AudioRecorder() {
     async function checkAudioModel() {
       try {
         const response = await api.get<{ available_models?: Record<string, boolean> }>("/health");
-        setAudioAvailable(Boolean(response.data.available_models?.audio_mlp));
+        setAudioAvailable(Boolean(
+          response.data.available_models?.stress_voice_combined ||
+          response.data.available_models?.neuroguard_audio_student ||
+          response.data.available_models?.audio_mlp ||
+          response.data.available_models?.audio_heuristic
+        ));
       } catch {
         setAudioAvailable(false);
       }
@@ -87,22 +93,27 @@ export function AudioRecorder() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const audioContext = new AudioContext();
+      await audioContext.audioWorklet.addModule("/audio-recorder-worklet.js");
       const source = audioContext.createMediaStreamSource(stream);
-      const processor = audioContext.createScriptProcessor(4096, 1, 1);
+      const processor = new AudioWorkletNode(audioContext, "audio-recorder-processor");
+      const monitorGain = audioContext.createGain();
+      monitorGain.gain.value = 0;
 
       chunksRef.current = [];
       sampleRateRef.current = audioContext.sampleRate;
-      processor.onaudioprocess = (event) => {
-        chunksRef.current.push(new Float32Array(event.inputBuffer.getChannelData(0)));
+      processor.port.onmessage = (event: MessageEvent<Float32Array>) => {
+        chunksRef.current.push(new Float32Array(event.data));
       };
 
       source.connect(processor);
-      processor.connect(audioContext.destination);
+      processor.connect(monitorGain);
+      monitorGain.connect(audioContext.destination);
 
       streamRef.current = stream;
       audioContextRef.current = audioContext;
       sourceRef.current = source;
       processorRef.current = processor;
+      monitorGainRef.current = monitorGain;
 
       setRecording(true);
       stopTimerRef.current = window.setTimeout(stopRecording, 10000);
@@ -117,11 +128,14 @@ export function AudioRecorder() {
       stopTimerRef.current = null;
     }
     processorRef.current?.disconnect();
+    processorRef.current?.port.close();
+    monitorGainRef.current?.disconnect();
     sourceRef.current?.disconnect();
     streamRef.current?.getTracks().forEach((track) => track.stop());
     void audioContextRef.current?.close();
 
     processorRef.current = null;
+    monitorGainRef.current = null;
     sourceRef.current = null;
     streamRef.current = null;
     audioContextRef.current = null;
@@ -137,7 +151,7 @@ export function AudioRecorder() {
   async function uploadClip() {
     if (!clip) return;
     if (!audioAvailable) {
-      setError("Audio prediction is unavailable because the current model folder does not include neuroguard_audio.keras.");
+      setError("Audio prediction is unavailable. Check the backend health endpoint.");
       return;
     }
     setLoading(true);
@@ -148,7 +162,7 @@ export function AudioRecorder() {
       const studentId = await getStudentId();
       if (studentId) formData.append("student_id", studentId);
       formData.append("save", String(Boolean(studentId)));
-      const response = await api.post<PredictionResponse>("/predict/audio", formData, {
+      const response = await api.post<PredictionResponse>("/predict/stress_voice", formData, {
         headers: { "Content-Type": "multipart/form-data" }
       });
       setResult(response.data);
@@ -170,13 +184,13 @@ export function AudioRecorder() {
         <h1 className="text-2xl font-semibold">Audio Recorder</h1>
         <p className="text-sm text-[#58706a]">
           {audioAvailable
-            ? "Record a 10-second voice clip and send it to the audio MLP."
-            : "Audio prediction is unavailable for the current PDS MODEL 2 folder."}
+            ? "Record a 10-second voice clip and send it to the audio stress pipeline."
+            : "Audio prediction is unavailable for the current backend."}
         </p>
       </div>
       {!audioAvailable && (
         <div className="mb-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
-          Add a compatible <span className="font-mono">neuroguard_audio.keras</span> file to enable this page. Survey and temporal LSTM predictions still work.
+          Start the backend and check <span className="font-mono">/health</span>. The app can use the trained audio model when present or the v2 heuristic fallback.
         </div>
       )}
       {error && <div className="mb-4 rounded-md border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">{error}</div>}
@@ -224,9 +238,39 @@ export function AudioRecorder() {
                 <span className="font-mono text-sm text-[#58706a]">{Math.round(result.confidence * 100)}%</span>
               </div>
               <ProbabilityChart values={[result.confidence_0, result.confidence_1, result.confidence_2]} />
+              {typeof result.final_stress === "number" && (
+                <div className="rounded-md bg-[#eef5f2] p-3 text-sm text-[#58706a]">
+                  <div className="flex justify-between">
+                    <span>Final stress</span>
+                    <span className="font-mono">{Math.round(result.final_stress * 100)}%</span>
+                  </div>
+                  <div className="mt-1 flex justify-between">
+                    <span>Baseline</span>
+                    <span className="font-mono">{Math.round(Number(result.stress_baseline || 0) * 100)}%</span>
+                  </div>
+                  <div className="mt-1 flex justify-between">
+                    <span>NeuroGuard</span>
+                    <span className="font-mono">{Math.round(Number(result.stress_neuroguard || 0) * 100)}%</span>
+                  </div>
+                  <div className="mt-3 border-t border-[#d4e2dc] pt-2">
+                    <div className="flex justify-between">
+                      <span>Baseline weight</span>
+                      <span className="font-mono">{Math.round(Number(result.weight_baseline || 0) * 100)}%</span>
+                    </div>
+                    <div className="mt-1 flex justify-between">
+                      <span>NeuroGuard weight</span>
+                      <span className="font-mono">{Math.round(Number(result.weight_neuroguard || 0) * 100)}%</span>
+                    </div>
+                    <div className="mt-1 flex justify-between">
+                      <span>AAMO</span>
+                      <span className="font-mono">{result.orchestrator_mode || "n/a"}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
           ) : (
-            <p className="text-sm text-[#58706a]">The MLP prediction will appear here.</p>
+            <p className="text-sm text-[#58706a]">The audio prediction will appear here.</p>
           )}
         </aside>
       </div>
